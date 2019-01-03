@@ -1,3 +1,4 @@
+import json
 import pyaudio
 import random
 import time
@@ -24,6 +25,7 @@ class LabelMaker:
 
     def __init__(self):
         self.generate_random_list_of_words()
+        self.script = dict()
 
     def run(self):
         self.start_recording()
@@ -74,10 +76,16 @@ class LabelMaker:
         counter = 0
         self.wait_for(3)
         for word in self.words:
-            print("{} {}".format(counter, self.frameCount, word))
+            print("{} {}".format(counter, word))
+            self.script[self.frameCount] = word
+            self.dump_script()
             counter += 1
             pause = random.uniform(4, 8)
             self.wait_for(pause)
+
+    def dump_script(self):
+        with open("script.json", "w") as scriptFile:
+            json.dump(self.script, scriptFile, indent=4, sort_keys=True)
 
     def wait_for(self, seconds):
         time.sleep(seconds)
