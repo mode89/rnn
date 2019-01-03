@@ -1,4 +1,6 @@
+import datetime
 import json
+import os
 import pyaudio
 import random
 import time
@@ -8,6 +10,7 @@ FRAME_RATE = 44100
 FRAMES_PER_BUFFER = 128
 WORD_NUM = 100
 WAV_FILE = "record.wav"
+SCRIPT_FILE = "script.json"
 
 VOCABULARY = [
     "cancel",
@@ -26,6 +29,7 @@ class LabelMaker:
     def __init__(self):
         self.generate_random_list_of_words()
         self.script = dict()
+        self.make_directory()
 
     def run(self):
         self.start_recording()
@@ -40,9 +44,16 @@ class LabelMaker:
         random.shuffle(words)
         self.words = words
 
+    def make_directory(self):
+        now = datetime.datetime.now()
+        self.directory = "{:%Y-%m-%d-%H-%M-%S}".format(now)
+        print("Creating directory {}".format(self.directory))
+        os.mkdir(self.directory)
+
     def start_recording(self):
         self.pyaudio = pyaudio.PyAudio()
-        self.waveFile = wave.open(WAV_FILE, "wb")
+        self.waveFile = wave.open(
+            os.path.join(self.directory, WAV_FILE), "wb")
         self.waveFile.setnchannels(1)
         self.waveFile.setsampwidth(2)
         self.waveFile.setframerate(FRAME_RATE)
@@ -84,7 +95,8 @@ class LabelMaker:
             self.wait_for(pause)
 
     def dump_script(self):
-        with open("script.json", "w") as scriptFile:
+        scriptPath = os.path.join(self.directory, SCRIPT_FILE)
+        with open(scriptPath, "w") as scriptFile:
             json.dump(self.script, scriptFile, indent=4, sort_keys=True)
 
     def wait_for(self, seconds):
