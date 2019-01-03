@@ -1,3 +1,11 @@
+VOCABULARY = [
+    "cancel",
+    "computer",
+    "yes",
+    "no",
+    "ok",
+]
+
 def main():
     pass
 
