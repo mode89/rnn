@@ -1,3 +1,5 @@
+import random
+
 VOCABULARY = [
     "cancel",
     "computer",
@@ -7,7 +9,15 @@ VOCABULARY = [
 ]
 
 def main():
-    pass
+    listOfWords = random_list_of_words()
+
+def random_list_of_words():
+    wordNum = 100 / len(VOCABULARY)
+    listOfWords = list()
+    for word in VOCABULARY:
+        listOfWords += [word] * wordNum
+    random.shuffle(listOfWords)
+    return listOfWords
 
 if __name__ == "__main__":
     main()
