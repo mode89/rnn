@@ -1,3 +1,4 @@
+from __future__ import print_function
 import argparse
 import json
 import os
@@ -6,6 +7,7 @@ import time
 import wave
 
 WAV_FILE = "record.wav"
+LABELS_FILE = "labels.json"
 
 def main():
     args = parse_arguments()
@@ -21,6 +23,7 @@ class LabelMaker:
 
     def __init__(self, args):
         self.directory = args.directory
+        self.labels = list()
 
     def run(self):
         self.start_playback()
@@ -63,10 +66,32 @@ class LabelMaker:
             self.script = json.load(scriptFile)
 
     def display_script(self):
+        self.counter = 0
         for stamp in sorted(map(int, self.script)):
-            while self.frameCount < stamp:
-                time.sleep(0.001)
-            print(self.script[str(stamp)])
+            self.wait_until(stamp)
+            self.create_label(stamp)
+            self.dump_labels()
+            self.counter += 1
+
+    def wait_until(self, stamp):
+        while self.frameCount < stamp:
+            time.sleep(0.001)
+
+    def create_label(self, stamp):
+        word = self.script[str(stamp)]
+        print(self.counter, end=" ")
+        raw_input(word)
+        label = {
+            "word": word,
+            "begin": stamp,
+            "end": self.frameCount
+        }
+        self.labels.append(label)
+
+    def dump_labels(self):
+        labelsPath = os.path.join(self.directory, LABELS_FILE)
+        with open(labelsPath, "w") as labelsFile:
+            json.dump(self.labels, labelsFile, indent=4)
 
 if __name__ == "__main__":
     main()
