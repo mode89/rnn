@@ -20,11 +20,7 @@ VOCABULARY = [
     "ok",
 ]
 
-def main():
-    labelMaker = LabelMaker()
-    labelMaker.run()
-
-class LabelMaker:
+class Recorder:
 
     def __init__(self):
         self.generate_random_list_of_words()
@@ -103,4 +99,5 @@ class LabelMaker:
         time.sleep(seconds)
 
 if __name__ == "__main__":
-    main()
+    recorder = Recorder()
+    recorder.run()
