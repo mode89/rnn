@@ -2,6 +2,11 @@ import argparse
 import json
 import numpy
 import os
+from record import VOCABULARY
+
+FRAME_RATE = 44100
+SAMPLE_LENGTH = 5.0
+ACTIVATION_LENGTH = 0.5
 
 class TrainingData:
 
@@ -17,6 +22,19 @@ class TrainingData:
     def prepare(self):
         self.load_features()
         self.load_labels()
+        sampleLength = \
+            int(SAMPLE_LENGTH * FRAME_RATE / self.chunk_size)
+        activationLength = \
+            int(ACTIVATION_LENGTH * FRAME_RATE / self.chunk_size)
+        for label in self.labels:
+            utteranceBegin = label["begin"] / self.chunk_size
+            utteranceEnd = label["end"] / self.chunk_size
+            utteranceLength = utteranceEnd - utteranceBegin
+            pauseLength = sampleLength - utteranceLength - activationLength
+            halfPause = int(pauseLength / 2)
+            sampleBegin = utteranceBegin - halfPause
+            sampleEnd = sampleBegin + sampleLength
+            inputs = self.features[sampleBegin:sampleEnd,:]
 
     def load_features(self):
         mfccPath = os.path.join(self.directory, "mfcc.npz")
