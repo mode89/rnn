@@ -22,9 +22,11 @@ class TrainingData:
     def prepare(self):
         self.load_features()
         self.load_labels()
-        self.generate_data()
+        self.generate_samples()
+        self.dump_samples()
 
-    def generate_data(self):
+    def generate_samples(self):
+        print("Generating samples ...")
         sampleLength = \
             int(SAMPLE_LENGTH * FRAME_RATE / self.chunk_size)
         activationLength = \
@@ -56,6 +58,13 @@ class TrainingData:
             self.outputs.append(outputs)
         self.inputs = numpy.array(self.inputs)
         self.outputs = numpy.array(self.outputs)
+
+    def dump_samples(self):
+        samplesPath = os.path.join(self.directory, "samples.npz")
+        print("Saving samples to {} ...".format(samplesPath))
+        numpy.savez_compressed(samplesPath,
+            inputs=self.inputs,
+            outputs=self.outputs)
 
     def load_features(self):
         mfccPath = os.path.join(self.directory, "mfcc.npz")
