@@ -21,10 +21,18 @@ class Model:
         print("Loading samples ...")
         samplesPath = os.path.join(self.directory, "samples.npz")
         data = numpy.load(samplesPath)
-        class Samples: pass
-        self.samples = Samples()
-        self.samples.inputs = data["inputs"]
-        self.samples.outputs = data["outputs"]
+        inputs = data["inputs"]
+        outputs = data["outputs"]
+        sampleNum = inputs.shape[0]
+        self.featureSize = inputs.shape[2]
+        self.classNum = outputs.shape[2]
+        self.samples = list()
+        for i in range(sampleNum):
+            class Sample: pass
+            sample = Sample()
+            sample.inputs = inputs[i]
+            sample.outputs = outputs[i]
+            self.samples.append(sample)
 
     def build(self):
         self.load_samples()
@@ -32,12 +40,10 @@ class Model:
 
         tf.set_random_seed(0)
 
-        inputsNum = self.samples.inputs.shape[2]
         self.inputs = tf.placeholder(tf.float32,
-            (None, SEQUENCE_SIZE, inputsNum), name="inputs")
-        outputsNum = self.samples.outputs.shape[2]
+            (None, SEQUENCE_SIZE, self.featureSize), name="inputs")
         self.outputs = tf.placeholder(tf.float32,
-            (None, SEQUENCE_SIZE, outputsNum), name="outputs")
+            (None, SEQUENCE_SIZE, self.classNum), name="outputs")
 
         lstmCell = tf.nn.rnn_cell.LSTMCell(num_units=128)
         zeroState = lstmCell.zero_state(BATCH_SIZE, tf.float32)
@@ -50,7 +56,7 @@ class Model:
             sequence_length=[SEQUENCE_SIZE],
             initial_state=initialState)
         logits = list()
-        denseLayer = tf.layers.Dense(outputsNum, tf.sigmoid)
+        denseLayer = tf.layers.Dense(self.classNum, tf.sigmoid)
         for i in range(SEQUENCE_SIZE):
             tempLogits = denseLayer(lstmOutputs[:, i, :])
             logits.append(tempLogits)
