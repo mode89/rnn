@@ -1,0 +1,168 @@
+import argparse
+import numpy
+import os
+import random
+from sklearn.preprocessing import Normalizer, StandardScaler, scale
+import tensorflow as tf
+
+numpy.set_printoptions(suppress=True, precision=3)
+
+NUM_UNITS = 32
+SEQUENCE_SIZE = 20
+BATCH_SIZE = 1
+
+class Model:
+
+    def __init__(self):
+        self.featureSize = 1
+        self.classNum = 11
+
+    def build(self):
+        print("Building model ...")
+
+        tf.set_random_seed(0)
+
+        self.inputs = tf.placeholder(tf.float32,
+            (None, SEQUENCE_SIZE, self.featureSize), name="inputs")
+        self.logitsReference = tf.placeholder(tf.float32,
+            (None, SEQUENCE_SIZE, self.classNum), name="logitsReference")
+        self.stepInputs = list()
+        self.lossWeights = tf.placeholder(tf.float32, (None, SEQUENCE_SIZE))
+
+        rnn = tf.layers.Dense(NUM_UNITS, tf.tanh)
+        state = tf.zeros((BATCH_SIZE, NUM_UNITS), tf.float32)
+
+        denseLayer = tf.layers.Dense(self.classNum, tf.sigmoid)
+        logits = list()
+        losses = list()
+        softmaxes = list()
+        for i in range(SEQUENCE_SIZE):
+            stepInputs = self.inputs[:, i, :]
+            self.stepInputs.append(stepInputs)
+            outputs = tf.concat((stepInputs, state), 1)
+            outputs = rnn(outputs)
+            state = outputs
+            outputs = denseLayer(outputs)
+            logits.append(outputs)
+            loss = tf.losses.softmax_cross_entropy(
+                self.logitsReference[:, i, :], outputs)
+            losses.append(loss)
+            softmax = tf.nn.softmax(outputs)
+            softmaxes.append(softmax)
+        self.stepInputs = tf.concat(self.stepInputs, 0, name="stepInputs")
+        self.losses = tf.stack(losses) * self.lossWeights
+        self.finalState = state
+        self.logits = tf.reshape(logits, tf.shape(self.logitsReference))
+        self.softmaxes = tf.concat(softmaxes, 0)
+
+        self.lossOp = tf.reduce_sum(self.losses)
+
+        optimizer = tf.train.AdamOptimizer()
+        self.trainOp = optimizer.minimize(self.lossOp)
+        self.logitsSoftmax = tf.nn.softmax(self.logits)
+        self.mseOp = tf.losses.mean_squared_error(
+            self.logitsReference, self.logits)
+        self.diffOp = tf.losses.absolute_difference(
+            self.logitsReference, self.logits)
+
+    def train(self):
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        with tf.Session(config=config) as self.session:
+            self.session.run(tf.global_variables_initializer())
+            epoch = 0
+            try:
+                while True:
+                    print("Epoch {} ...".format(epoch))
+                    self.epoch()
+                    epoch += 1
+            except KeyboardInterrupt:
+                pass
+
+    def epoch(self):
+        for sample in self.generate_samples():
+            mseMax = None
+            mseSum = 0
+            lossMax = None
+            lossSum = 0
+            diffMax = None
+            diffSum = 0
+            for batch in self.batches(sample):
+                _, state, loss, mse, logitsValues, losses, softmaxes, stepInputs = self.session.run(
+                    [
+                        self.trainOp,
+                        self.finalState,
+                        self.lossOp,
+                        self.mseOp,
+                        self.logits,
+                        self.losses,
+                        self.softmaxes,
+                        self.stepInputs,
+                    ],
+                    {
+                        self.inputs: batch.inputs,
+                        self.logitsReference: batch.outputs,
+                        self.lossWeights: sample.lossWeights,
+                    })
+                lossSum += loss
+                lossMax = max(loss, lossMax)
+                mseMax = max(mse, mseMax)
+                mseSum += mse
+                diff = numpy.max(
+                    numpy.abs(logitsValues - batch.outputs))
+                diffMax = max(diff, diffMax)
+                diffSum += diff
+            print(
+                lossSum / self.batchNum, lossMax,
+                mse / self.batchNum, mseMax,
+                diffSum / self.batchNum, diffMax)
+
+    def generate_samples(self):
+        while True:
+            SAMPLE_SIZE = 20
+            inputs = numpy.ones((SAMPLE_SIZE, 1)) * -1.0
+            values = list()
+            for i in range(2):
+                values.append(random.randrange(19))
+            values = sorted(values)
+            first = values[0]
+            second = values[1]
+            delta = second - first
+            inputs[first,0] = 1.0
+            inputs[second,0] = 1.0
+            inputs = inputs / 2
+            defaultOutputs = numpy.zeros(self.classNum)
+            defaultOutputs[0] = 1.0
+            outputs = numpy.tile(defaultOutputs, (SAMPLE_SIZE, 1))
+            lossWeights = numpy.full((1, SEQUENCE_SIZE), 1.0)
+            if delta > 0 and delta < 11:
+                outputs[second + 1, 0] = 0.0
+                outputs[second + 1, delta] = 1.0
+                lossWeights[0, first] = 20.0
+                lossWeights[0, second + 1] = 40.0
+            class Sample: pass
+            sample = Sample()
+            sample.inputs = inputs
+            sample.outputs = outputs
+            sample.lossWeights = lossWeights
+            yield sample
+
+    def batches(self, sample):
+        self.batchNum = sample.inputs.shape[0] / SEQUENCE_SIZE
+        for i in range(self.batchNum):
+            firstTimeStep = i * SEQUENCE_SIZE
+            lastTimeStep = firstTimeStep + SEQUENCE_SIZE
+            class Batch: pass
+            batch = Batch()
+            batch.inputs = numpy.reshape(
+                sample.inputs[firstTimeStep:lastTimeStep,:],
+                (BATCH_SIZE, SEQUENCE_SIZE, self.featureSize))
+            batch.outputs = numpy.reshape(
+                sample.outputs[firstTimeStep:lastTimeStep,:],
+                (BATCH_SIZE, SEQUENCE_SIZE, self.classNum))
+            yield batch
+
+if __name__ == "__main__":
+    model = Model()
+    model.build()
+    model.train()
