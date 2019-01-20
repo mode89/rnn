@@ -8,7 +8,9 @@ import tensorflow as tf
 numpy.set_printoptions(suppress=True, precision=3)
 
 NUM_UNITS = 32
+SAMPLE_LENGTH = 20
 SEQUENCE_SIZE = 20
+CLASS_NUM = 11
 BATCH_SIZE = 1
 
 class Model:
@@ -65,7 +67,9 @@ class Model:
         self.diffOp = tf.losses.absolute_difference(
             self.logitsReference, self.logits)
 
-    def train(self):
+    def train(self, samples):
+        samples = list(samples)
+        random.shuffle(samples)
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         with tf.Session(config=config) as self.session:
@@ -74,13 +78,13 @@ class Model:
             try:
                 while True:
                     print("Epoch {} ...".format(epoch))
-                    self.epoch()
+                    self.epoch(samples)
                     epoch += 1
             except KeyboardInterrupt:
                 pass
 
-    def epoch(self):
-        for sample in self.generate_samples():
+    def epoch(self, samples):
+        for sample in samples:
             mseMax = None
             mseSum = 0
             lossMax = None
@@ -117,36 +121,6 @@ class Model:
                 mse / self.batchNum, mseMax,
                 diffSum / self.batchNum, diffMax)
 
-    def generate_samples(self):
-        while True:
-            SAMPLE_SIZE = 20
-            inputs = numpy.ones((SAMPLE_SIZE, 1)) * -1.0
-            values = list()
-            for i in range(2):
-                values.append(random.randrange(19))
-            values = sorted(values)
-            first = values[0]
-            second = values[1]
-            delta = second - first
-            inputs[first,0] = 1.0
-            inputs[second,0] = 1.0
-            inputs = inputs / 2
-            defaultOutputs = numpy.zeros(self.classNum)
-            defaultOutputs[0] = 1.0
-            outputs = numpy.tile(defaultOutputs, (SAMPLE_SIZE, 1))
-            lossWeights = numpy.full((1, SEQUENCE_SIZE), 1.0)
-            if delta > 0 and delta < 11:
-                outputs[second + 1, 0] = 0.0
-                outputs[second + 1, delta] = 1.0
-                lossWeights[0, first] = 20.0
-                lossWeights[0, second + 1] = 40.0
-            class Sample: pass
-            sample = Sample()
-            sample.inputs = inputs
-            sample.outputs = outputs
-            sample.lossWeights = lossWeights
-            yield sample
-
     def batches(self, sample):
         self.batchNum = sample.inputs.shape[0] / SEQUENCE_SIZE
         for i in range(self.batchNum):
@@ -162,7 +136,29 @@ class Model:
                 (BATCH_SIZE, SEQUENCE_SIZE, self.classNum))
             yield batch
 
+def generate_samples():
+    for delta in range(0, SAMPLE_LENGTH - 5):
+        for deltaSampleIndex in range(20):
+            first = random.randrange(SAMPLE_LENGTH - delta - 4)
+            second = first + delta
+            inputs = numpy.ones((SAMPLE_LENGTH, 1)) * -1.0
+            inputs[first, 0] = 1.0
+            inputs[second, 0] = 1.0
+            outputs = numpy.zeros((SAMPLE_LENGTH, CLASS_NUM))
+            outputs[:, 0] = 1.0
+            if delta > 0 and delta < 11:
+                pulseBegin = second + 1
+                pulseEnd = second + 5
+                outputs[pulseBegin:pulseEnd, 0] = 0.0
+                outputs[pulseBegin:pulseEnd, delta] = 1.0
+            class Sample: pass
+            sample = Sample()
+            sample.inputs = inputs
+            sample.outputs = outputs
+            yield sample
+
 if __name__ == "__main__":
+    samples = generate_samples()
     model = Model()
     model.build()
-    model.train()
+    model.train(samples)
