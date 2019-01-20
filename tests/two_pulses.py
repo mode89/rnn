@@ -106,7 +106,7 @@ class Model:
                     {
                         self.inputs: batch.inputs,
                         self.logitsReference: batch.outputs,
-                        self.lossWeights: sample.lossWeights,
+                        self.lossWeights: batch.lossWeights,
                     })
                 lossSum += loss
                 lossMax = max(loss, lossMax)
@@ -131,9 +131,12 @@ class Model:
             batch.inputs = numpy.reshape(
                 sample.inputs[firstTimeStep:lastTimeStep,:],
                 (BATCH_SIZE, SEQUENCE_SIZE, self.featureSize))
+            outputs = sample.outputs[firstTimeStep:lastTimeStep,:]
             batch.outputs = numpy.reshape(
-                sample.outputs[firstTimeStep:lastTimeStep,:],
+                outputs,
                 (BATCH_SIZE, SEQUENCE_SIZE, self.classNum))
+            batch.lossWeights = numpy.reshape(loss_weights(outputs),
+                (BATCH_SIZE, SEQUENCE_SIZE))
             yield batch
 
 def generate_samples():
@@ -156,6 +159,12 @@ def generate_samples():
             sample.inputs = inputs
             sample.outputs = outputs
             yield sample
+
+def loss_weights(outputs):
+    weights = numpy.full(outputs.shape[0], 1.0)
+    activated = outputs[:, 0] == 0.0
+    weights[activated] = 20.0
+    return weights
 
 if __name__ == "__main__":
     samples = generate_samples()
