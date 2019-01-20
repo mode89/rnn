@@ -7,7 +7,7 @@ import tensorflow as tf
 
 numpy.set_printoptions(suppress=True, precision=3)
 
-NUM_UNITS = 32
+NUM_UNITS = 64
 SAMPLE_LENGTH = 20
 SEQUENCE_SIZE = 20
 CLASS_NUM = 11
@@ -31,19 +31,19 @@ class Model:
         self.stepInputs = list()
         self.lossWeights = tf.placeholder(tf.float32, (None, SEQUENCE_SIZE))
 
-        rnn = tf.layers.Dense(NUM_UNITS, tf.tanh)
-        state = tf.zeros((BATCH_SIZE, NUM_UNITS), tf.float32)
+        rnn = tf.nn.rnn_cell.GRUCell(num_units=NUM_UNITS)
+        self.zeroState = rnn.zero_state(BATCH_SIZE, tf.float32)
+        self.initialState = self.zeroState
 
         denseLayer = tf.layers.Dense(self.classNum, tf.sigmoid)
         logits = list()
         losses = list()
         softmaxes = list()
+        state = self.initialState
         for i in range(SEQUENCE_SIZE):
             stepInputs = self.inputs[:, i, :]
             self.stepInputs.append(stepInputs)
-            outputs = tf.concat((stepInputs, state), 1)
-            outputs = rnn(outputs)
-            state = outputs
+            outputs, state = rnn(stepInputs, state)
             outputs = denseLayer(outputs)
             logits.append(outputs)
             loss = tf.losses.softmax_cross_entropy(
