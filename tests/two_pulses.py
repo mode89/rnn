@@ -55,6 +55,8 @@ class Model:
         self.losses = tf.stack(losses) * self.lossWeights
         self.finalState = state
         self.logits = tf.reshape(logits, tf.shape(self.logitsReference))
+        self.argmax = tf.argmax(self.logits, 2)
+        self.oneHot = tf.one_hot(self.argmax, CLASS_NUM)
         self.softmaxes = tf.concat(softmaxes, 0)
 
         self.lossOp = tf.reduce_sum(self.losses)
@@ -84,42 +86,23 @@ class Model:
                 pass
 
     def epoch(self, samples):
+        oneHotDiffSum = 0.0
         for sample in samples:
-            mseMax = None
-            mseSum = 0
-            lossMax = None
-            lossSum = 0
-            diffMax = None
-            diffSum = 0
             for batch in self.batches(sample):
-                _, state, loss, mse, logitsValues, losses, softmaxes, stepInputs = self.session.run(
-                    [
-                        self.trainOp,
-                        self.finalState,
-                        self.lossOp,
-                        self.mseOp,
-                        self.logits,
-                        self.losses,
-                        self.softmaxes,
-                        self.stepInputs,
-                    ],
+                results = self.session.run(
+                    {
+                        "trainOp": self.trainOp,
+                        "oneHot": self.oneHot,
+                    },
                     {
                         self.inputs: batch.inputs,
                         self.logitsReference: batch.outputs,
                         self.lossWeights: batch.lossWeights,
                     })
-                lossSum += loss
-                lossMax = max(loss, lossMax)
-                mseMax = max(mse, mseMax)
-                mseSum += mse
-                diff = numpy.max(
-                    numpy.abs(logitsValues - batch.outputs))
-                diffMax = max(diff, diffMax)
-                diffSum += diff
-            print(
-                lossSum / self.batchNum, lossMax,
-                mse / self.batchNum, mseMax,
-                diffSum / self.batchNum, diffMax)
+                oneHotDiff = numpy.sum(numpy.abs(
+                    results["oneHot"] - batch.outputs))
+                oneHotDiffSum += oneHotDiff
+        print(oneHotDiffSum / len(samples))
 
     def batches(self, sample):
         self.batchNum = sample.inputs.shape[0] / SEQUENCE_SIZE
