@@ -12,6 +12,7 @@ SAMPLE_LENGTH = 20
 SEQUENCE_SIZE = 20
 CLASS_NUM = 11
 BATCH_SIZE = 1
+INPUT_NOISE = 0.4
 
 class Model:
 
@@ -130,6 +131,9 @@ def generate_samples():
             inputs = numpy.ones((SAMPLE_LENGTH, 1)) * -1.0
             inputs[first, 0] = 1.0
             inputs[second, 0] = 1.0
+            noise = numpy.random.sample((SAMPLE_LENGTH, 1)) * \
+                INPUT_NOISE - INPUT_NOISE * 0.5
+            inputs += noise
             outputs = numpy.zeros((SAMPLE_LENGTH, CLASS_NUM))
             outputs[:, 0] = 1.0
             if delta > 0 and delta < 11:
