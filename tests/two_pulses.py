@@ -33,8 +33,8 @@ class Model:
         self.lossWeights = tf.placeholder(tf.float32, (None, SEQUENCE_SIZE))
 
         rnn = tf.nn.rnn_cell.GRUCell(num_units=NUM_UNITS)
-        self.zeroState = rnn.zero_state(BATCH_SIZE, tf.float32)
-        self.initialState = self.zeroState
+        self.initialState = tf.placeholder(
+            tf.float32, (None, rnn.state_size), name="initialState")
 
         denseLayer = tf.layers.Dense(self.classNum, tf.sigmoid)
         logits = list()
@@ -97,6 +97,7 @@ class Model:
                     },
                     {
                         self.inputs: batch.inputs,
+                        self.initialState: batch.initialState,
                         self.logitsReference: batch.outputs,
                         self.lossWeights: batch.lossWeights,
                     })
@@ -121,6 +122,8 @@ class Model:
                 (BATCH_SIZE, SEQUENCE_SIZE, self.classNum))
             batch.lossWeights = numpy.reshape(loss_weights(outputs),
                 (BATCH_SIZE, SEQUENCE_SIZE))
+            batch.initialState = numpy.random.uniform(
+                -0.5, 0.5, (BATCH_SIZE, NUM_UNITS))
             yield batch
 
 def generate_samples():
