@@ -73,6 +73,9 @@ class Model:
     def train(self, samples):
         samples = list(samples)
         random.shuffle(samples)
+        trainSamplesNum = int(len(samples) * 0.8)
+        trainSamples = samples[:trainSamplesNum]
+        testSamples = samples[trainSamplesNum:]
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         with tf.Session(config=config) as self.session:
@@ -81,7 +84,8 @@ class Model:
             try:
                 while True:
                     print("Epoch {} ...".format(epoch))
-                    self.epoch(samples)
+                    self.epoch(trainSamples)
+                    self.validate(testSamples)
                     epoch += 1
             except KeyboardInterrupt:
                 pass
@@ -100,6 +104,24 @@ class Model:
                         self.initialState: batch.initialState,
                         self.logitsReference: batch.outputs,
                         self.lossWeights: batch.lossWeights,
+                    })
+                oneHotDiff = numpy.sum(numpy.abs(
+                    results["oneHot"] - batch.outputs))
+                oneHotDiffSum += oneHotDiff
+        print(oneHotDiffSum / len(samples))
+
+    def validate(self, samples):
+        oneHotDiffSum = 0.0
+        for sample in samples:
+            for batch in self.batches(sample):
+                results = self.session.run(
+                    {
+                        "oneHot": self.oneHot,
+                    },
+                    {
+                        self.inputs: batch.inputs,
+                        self.logitsReference: batch.outputs,
+                        self.initialState: batch.initialState,
                     })
                 oneHotDiff = numpy.sum(numpy.abs(
                     results["oneHot"] - batch.outputs))
