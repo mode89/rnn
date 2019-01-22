@@ -92,6 +92,7 @@ class Model:
 
     def epoch(self, samples):
         oneHotDiffSum = 0.0
+        random.shuffle(samples)
         for sample in samples:
             for batch in self.batches(sample):
                 results = self.session.run(
