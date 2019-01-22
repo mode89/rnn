@@ -94,18 +94,22 @@ class Model:
         oneHotDiffSum = 0.0
         random.shuffle(samples)
         for sample in samples:
+            initialState = numpy.random.uniform(
+                -0.5, 0.5, (BATCH_SIZE, NUM_UNITS))
             for batch in self.batches(sample):
                 results = self.session.run(
                     {
                         "trainOp": self.trainOp,
                         "oneHot": self.oneHot,
+                        "finalState": self.finalState,
                     },
                     {
                         self.inputs: batch.inputs,
-                        self.initialState: batch.initialState,
+                        self.initialState: initialState,
                         self.logitsReference: batch.outputs,
                         self.lossWeights: batch.lossWeights,
                     })
+                initialState = results["finalState"]
                 oneHotDiff = numpy.sum(numpy.abs(
                     results["oneHot"] - batch.outputs))
                 oneHotDiffSum += oneHotDiff
@@ -114,16 +118,20 @@ class Model:
     def validate(self, samples):
         oneHotDiffSum = 0.0
         for sample in samples:
+            initialState = numpy.random.uniform(
+                -0.5, 0.5, (BATCH_SIZE, NUM_UNITS))
             for batch in self.batches(sample):
                 results = self.session.run(
                     {
                         "oneHot": self.oneHot,
+                        "finalState": self.finalState,
                     },
                     {
                         self.inputs: batch.inputs,
                         self.logitsReference: batch.outputs,
-                        self.initialState: batch.initialState,
+                        self.initialState: initialState,
                     })
+                initialState = results["finalState"]
                 oneHotDiff = numpy.sum(numpy.abs(
                     results["oneHot"] - batch.outputs))
                 oneHotDiffSum += oneHotDiff
@@ -145,8 +153,6 @@ class Model:
                 (BATCH_SIZE, SEQUENCE_SIZE, self.classNum))
             batch.lossWeights = numpy.reshape(loss_weights(outputs),
                 (BATCH_SIZE, SEQUENCE_SIZE))
-            batch.initialState = numpy.random.uniform(
-                -0.5, 0.5, (BATCH_SIZE, NUM_UNITS))
             yield batch
 
 def generate_samples():
