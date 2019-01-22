@@ -156,28 +156,28 @@ class Model:
             yield batch
 
 def generate_samples():
-    for delta in range(0, SAMPLE_LENGTH - 5):
-        for deltaSampleIndex in range(20):
-            first = random.randrange(SAMPLE_LENGTH - delta - 4)
-            second = first + delta
-            inputs = numpy.ones((SAMPLE_LENGTH, 1)) * -1.0
-            inputs[first, 0] = 1.0
-            inputs[second, 0] = 1.0
-            noise = numpy.random.uniform(
-                -INPUT_NOISE, INPUT_NOISE, (SAMPLE_LENGTH, 1))
-            inputs += noise
-            outputs = numpy.zeros((SAMPLE_LENGTH, CLASS_NUM))
-            outputs[:, 0] = 1.0
-            if delta > 0 and delta < CLASS_NUM:
-                pulseBegin = second + 1
-                pulseEnd = second + 5
-                outputs[pulseBegin:pulseEnd, 0] = 0.0
-                outputs[pulseBegin:pulseEnd, delta] = 1.0
-            class Sample: pass
-            sample = Sample()
-            sample.inputs = inputs
-            sample.outputs = outputs
-            yield sample
+    for sampleIndex in range(300):
+        delta = random.randrange(15)
+        first = random.randrange(SAMPLE_LENGTH - delta - 4)
+        second = first + delta
+        inputs = numpy.ones((SAMPLE_LENGTH, 1)) * -1.0
+        inputs[first, 0] = 1.0
+        inputs[second, 0] = 1.0
+        noise = numpy.random.uniform(
+            -INPUT_NOISE, INPUT_NOISE, (SAMPLE_LENGTH, 1))
+        inputs += noise
+        outputs = numpy.zeros((SAMPLE_LENGTH, CLASS_NUM))
+        outputs[:, 0] = 1.0
+        if delta > 0 and delta < CLASS_NUM:
+            pulseBegin = second + 1
+            pulseEnd = second + 5
+            outputs[pulseBegin:pulseEnd, 0] = 0.0
+            outputs[pulseBegin:pulseEnd, delta] = 1.0
+        class Sample: pass
+        sample = Sample()
+        sample.inputs = inputs
+        sample.outputs = outputs
+        yield sample
 
 def loss_weights(outputs):
     weights = numpy.full(outputs.shape[0], 1.0)
