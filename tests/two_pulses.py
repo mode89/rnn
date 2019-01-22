@@ -156,8 +156,8 @@ def generate_samples():
             inputs = numpy.ones((SAMPLE_LENGTH, 1)) * -1.0
             inputs[first, 0] = 1.0
             inputs[second, 0] = 1.0
-            noise = numpy.random.sample((SAMPLE_LENGTH, 1)) * \
-                INPUT_NOISE - INPUT_NOISE * 0.5
+            noise = numpy.random.uniform(
+                -INPUT_NOISE, INPUT_NOISE, (SAMPLE_LENGTH, 1))
             inputs += noise
             outputs = numpy.zeros((SAMPLE_LENGTH, CLASS_NUM))
             outputs[:, 0] = 1.0
