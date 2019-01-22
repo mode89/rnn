@@ -13,6 +13,7 @@ SEQUENCE_SIZE = 20
 CLASS_NUM = 11
 BATCH_SIZE = 1
 INPUT_NOISE = 0.4
+INITIAL_NOISE = 0.5
 
 class Model:
 
@@ -94,7 +95,7 @@ class Model:
         random.shuffle(samples)
         for sample in samples:
             initialState = numpy.random.uniform(
-                -0.5, 0.5, (BATCH_SIZE, NUM_UNITS))
+                -INITIAL_NOISE, INITIAL_NOISE, (BATCH_SIZE, NUM_UNITS))
             for batch in self.batches(sample):
                 results = self.session.run(
                     {
@@ -118,7 +119,7 @@ class Model:
         oneHotDiffSum = 0.0
         for sample in samples:
             initialState = numpy.random.uniform(
-                -0.5, 0.5, (BATCH_SIZE, NUM_UNITS))
+                -INITIAL_NOISE, INITIAL_NOISE, (BATCH_SIZE, NUM_UNITS))
             for batch in self.batches(sample):
                 results = self.session.run(
                     {
