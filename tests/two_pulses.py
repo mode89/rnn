@@ -18,7 +18,6 @@ class Model:
 
     def __init__(self):
         self.featureSize = 1
-        self.classNum = 11
 
     def build(self):
         print("Building model ...")
@@ -28,7 +27,7 @@ class Model:
         self.inputs = tf.placeholder(tf.float32,
             (None, SEQUENCE_SIZE, self.featureSize), name="inputs")
         self.logitsReference = tf.placeholder(tf.float32,
-            (None, SEQUENCE_SIZE, self.classNum), name="logitsReference")
+            (None, SEQUENCE_SIZE, CLASS_NUM), name="logitsReference")
         self.stepInputs = list()
         self.lossWeights = tf.placeholder(tf.float32, (None, SEQUENCE_SIZE))
 
@@ -36,7 +35,7 @@ class Model:
         self.initialState = tf.placeholder(
             tf.float32, (None, rnn.state_size), name="initialState")
 
-        denseLayer = tf.layers.Dense(self.classNum, tf.sigmoid)
+        denseLayer = tf.layers.Dense(CLASS_NUM, tf.sigmoid)
         logits = list()
         losses = list()
         softmaxes = list()
@@ -150,7 +149,7 @@ class Model:
             outputs = sample.outputs[firstTimeStep:lastTimeStep,:]
             batch.outputs = numpy.reshape(
                 outputs,
-                (BATCH_SIZE, SEQUENCE_SIZE, self.classNum))
+                (BATCH_SIZE, SEQUENCE_SIZE, CLASS_NUM))
             batch.lossWeights = numpy.reshape(loss_weights(outputs),
                 (BATCH_SIZE, SEQUENCE_SIZE))
             yield batch
@@ -168,7 +167,7 @@ def generate_samples():
             inputs += noise
             outputs = numpy.zeros((SAMPLE_LENGTH, CLASS_NUM))
             outputs[:, 0] = 1.0
-            if delta > 0 and delta < 11:
+            if delta > 0 and delta < CLASS_NUM:
                 pulseBegin = second + 1
                 pulseEnd = second + 5
                 outputs[pulseBegin:pulseEnd, 0] = 0.0
