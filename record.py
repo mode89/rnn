@@ -7,7 +7,7 @@ import time
 import wave
 
 FRAME_RATE = 44100
-FRAMES_PER_BUFFER = 128
+FRAMES_PER_BUFFER = 441
 WORD_NUM = 100
 WAV_FILE = "record.wav"
 SCRIPT_FILE = "script.json"

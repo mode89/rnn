@@ -1,19 +1,27 @@
 import argparse
+from collections import namedtuple
 import numpy
 import os
 import random
 from sklearn.preprocessing import Normalizer, StandardScaler, scale
 import tensorflow as tf
+from tensorflow.nn.rnn_cell import GRUCell, LSTMCell, LSTMStateTuple, MultiRNNCell
+from tqdm import tqdm
 
 numpy.set_printoptions(suppress=True, precision=3)
 
 NUM_UNITS = 64
-SAMPLE_LENGTH = 20
-SEQUENCE_SIZE = 20
+SAMPLE_NUM = 300
+SAMPLE_LENGTH = 100
+SEQUENCE_SIZE = SAMPLE_LENGTH
 CLASS_NUM = 11
-BATCH_SIZE = 1
-INPUT_NOISE = 0.4
-INITIAL_NOISE = 0.5
+BATCH_SIZE = 60
+BATCH_NUM = int(SAMPLE_NUM / BATCH_SIZE)
+INPUT_NOISE = 0.0
+INITIAL_NOISE = 0.0
+
+Sample = namedtuple("Sample", ["inputs", "outputs"])
+Batch = namedtuple("Batch", ["inputs", "outputs"])
 
 class Model:
 
@@ -28,42 +36,49 @@ class Model:
         self.inputs = tf.placeholder(tf.float32,
             (None, SEQUENCE_SIZE, self.featureSize), name="inputs")
         self.logitsReference = tf.placeholder(tf.float32,
-            (None, SEQUENCE_SIZE, CLASS_NUM), name="logitsReference")
-        self.stepInputs = list()
-        self.lossWeights = tf.placeholder(tf.float32, (None, SEQUENCE_SIZE))
+            (None, CLASS_NUM), name="logitsReference")
 
-        rnn = tf.nn.rnn_cell.GRUCell(num_units=NUM_UNITS)
-        self.initialState = tf.placeholder(
-            tf.float32, (None, rnn.state_size), name="initialState")
+        rnn = GRUCell(NUM_UNITS)
+        # self.initialState = tf.placeholder(
+        #     tf.float32, (None, rnn.state_size), name="initialState")
+        # rnn = LSTMCell(NUM_UNITS)
+        # self.initialState = tf.placeholder(
+        #     tf.float32, (None, rnn.state_size), name="initialState")
+        # rnn = MultiRNNCell([
+        #     GRUCell(NUM_UNITS),
+        #     GRUCell(NUM_UNITS)
+        # ])
+        self.initialState = rnn.zero_state(BATCH_SIZE, tf.float32)
 
         denseLayer = tf.layers.Dense(CLASS_NUM, tf.sigmoid)
-        logits = list()
-        losses = list()
-        softmaxes = list()
         state = self.initialState
-        for i in range(SEQUENCE_SIZE):
-            stepInputs = self.inputs[:, i, :]
-            self.stepInputs.append(stepInputs)
-            outputs, state = rnn(stepInputs, state)
-            outputs = denseLayer(outputs)
-            logits.append(outputs)
-            loss = tf.losses.softmax_cross_entropy(
-                self.logitsReference[:, i, :], outputs)
+        for i in range(SAMPLE_LENGTH):
+            inputs = self.inputs[:, i, :]
+            outputs, state = rnn(inputs, state)
+        self.logits = denseLayer(outputs)
+        losses = list()
+        for batchIndex in range(BATCH_SIZE):
+            # loss = tf.losses.softmax_cross_entropy(
+            #     self.logitsReference[i,:], self.logits[i,:])
+            loss = tf.keras.backend.categorical_crossentropy(
+                self.logitsReference[batchIndex,:],
+                self.logits[batchIndex,:],
+                from_logits=True)
+            print(loss)
             losses.append(loss)
-            softmax = tf.nn.softmax(outputs)
-            softmaxes.append(softmax)
-        self.stepInputs = tf.concat(self.stepInputs, 0, name="stepInputs")
-        self.losses = tf.stack(losses) * self.lossWeights
-        self.finalState = state
-        self.logits = tf.reshape(logits, tf.shape(self.logitsReference))
-        self.argmax = tf.argmax(self.logits, 2)
-        self.oneHot = tf.one_hot(self.argmax, CLASS_NUM)
-        self.softmaxes = tf.concat(softmaxes, 0)
+        self.loss = tf.reduce_mean(losses)
+        # self.loss = tf.losses.softmax_cross_entropy(
+        #     self.logitsReference, self.logits)
+        # self.loss = tf.losses.mean_squared_error(
+        #     self.logitsReference, self.logits)
 
-        self.lossOp = tf.reduce_sum(self.losses)
+        self.finalState = state
+        self.argmax = tf.argmax(self.logits, 1)
+        self.oneHot = tf.one_hot(self.argmax, CLASS_NUM)
 
         optimizer = tf.train.AdamOptimizer()
-        self.trainOp = optimizer.minimize(self.lossOp)
+        self.trainOp = optimizer.minimize(self.loss)
+
         self.logitsSoftmax = tf.nn.softmax(self.logits)
         self.mseOp = tf.losses.mean_squared_error(
             self.logitsReference, self.logits)
@@ -75,6 +90,8 @@ class Model:
         random.shuffle(samples)
         trainSamplesNum = int(len(samples) * 0.8)
         trainSamples = samples[:trainSamplesNum]
+        for sample in trainSamples:
+            print(sample.outputs)
         testSamples = samples[trainSamplesNum:]
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
@@ -92,97 +109,124 @@ class Model:
 
     def epoch(self, samples):
         oneHotDiffSum = 0.0
+        lossSum = 0.0
         random.shuffle(samples)
-        for sample in samples:
-            initialState = numpy.random.uniform(
-                -INITIAL_NOISE, INITIAL_NOISE, (BATCH_SIZE, NUM_UNITS))
-            for batch in self.batches(sample):
-                results = self.session.run(
-                    {
-                        "trainOp": self.trainOp,
-                        "oneHot": self.oneHot,
-                        "finalState": self.finalState,
-                    },
-                    {
-                        self.inputs: batch.inputs,
-                        self.initialState: initialState,
-                        self.logitsReference: batch.outputs,
-                        self.lossWeights: batch.lossWeights,
-                    })
-                initialState = results["finalState"]
-                oneHotDiff = numpy.sum(numpy.abs(
-                    results["oneHot"] - batch.outputs))
-                oneHotDiffSum += oneHotDiff
-        print(oneHotDiffSum / len(samples))
+        for batch in self.batches(samples):
+            results = self.session.run(
+                {
+                    "trainOp": self.trainOp,
+                    "oneHot": self.oneHot,
+                    "logits": self.logits,
+                    "loss": self.loss,
+                    "finalState": self.finalState,
+                },
+                {
+                    self.inputs: batch.inputs,
+                    # self.initialState: initialState,
+                    self.logitsReference: batch.outputs,
+                })
+            # initialState = results["finalState"]
+            oneHotDiff = numpy.sum(numpy.abs(
+                results["oneHot"] - batch.outputs))
+            oneHotDiffSum += oneHotDiff
+            lossSum += results["loss"]
+            # print(results["finalState"])
+            # print(results["logits"])
+        print(
+            oneHotDiffSum / len(samples),
+            lossSum / len(samples) * BATCH_SIZE,
+        )
 
     def validate(self, samples):
         oneHotDiffSum = 0.0
-        for sample in samples:
-            initialState = numpy.random.uniform(
-                -INITIAL_NOISE, INITIAL_NOISE, (BATCH_SIZE, NUM_UNITS))
-            for batch in self.batches(sample):
-                results = self.session.run(
-                    {
-                        "oneHot": self.oneHot,
-                        "finalState": self.finalState,
-                    },
-                    {
-                        self.inputs: batch.inputs,
-                        self.logitsReference: batch.outputs,
-                        self.initialState: initialState,
-                    })
-                initialState = results["finalState"]
-                oneHotDiff = numpy.sum(numpy.abs(
-                    results["oneHot"] - batch.outputs))
-                oneHotDiffSum += oneHotDiff
-        print(oneHotDiffSum / len(samples))
+        lossSum = 0.0
+        for batch in self.batches(samples):
+            results = self.session.run(
+                {
+                    "oneHot": self.oneHot,
+                    "loss": self.loss,
+                    "finalState": self.finalState,
+                },
+                {
+                    self.inputs: batch.inputs,
+                    self.logitsReference: batch.outputs,
+                    # self.initialState: initialState,
+                })
+            # initialState = results["finalState"]
+            oneHotDiff = numpy.sum(numpy.abs(
+                results["oneHot"] - batch.outputs))
+            oneHotDiffSum += oneHotDiff
+            lossSum += results["loss"]
+        print(
+            oneHotDiffSum / len(samples),
+            lossSum / len(samples) * BATCH_SIZE,
+        )
 
-    def batches(self, sample):
-        self.batchNum = sample.inputs.shape[0] / SEQUENCE_SIZE
-        for i in range(self.batchNum):
-            firstTimeStep = i * SEQUENCE_SIZE
-            lastTimeStep = firstTimeStep + SEQUENCE_SIZE
+    def initial_state(self):
+        return numpy.random.uniform(
+            -INITIAL_NOISE, INITIAL_NOISE, (BATCH_SIZE, NUM_UNITS))
+        # return LSTMStateTuple(
+        #     numpy.zeros((BATCH_SIZE, NUM_UNITS)),
+        #     numpy.zeros((BATCH_SIZE, NUM_UNITS))
+        # )
+        # return [
+        #     [
+        #         numpy.zeros((BATCH_SIZE, NUM_UNITS)),
+        #         numpy.zeros((BATCH_SIZE, NUM_UNITS)),
+        #     ],
+        #     [
+        #         numpy.zeros((BATCH_SIZE, NUM_UNITS)),
+        #         numpy.zeros((BATCH_SIZE, NUM_UNITS)),
+        #     ],
+        # ]
+
+    def batches(self, samples):
+        batchNum = len(samples) / BATCH_SIZE
+        for batchIndex in tqdm(range(batchNum), ascii=True):
+            firstSample = batchIndex * BATCH_SIZE
+            lastSample = firstSample + BATCH_SIZE
+            inputs = list()
+            outputs = list()
+            for sample in samples[firstSample:lastSample]:
+                inputs.append(sample.inputs)
+                outputs.append(sample.outputs)
             class Batch: pass
             batch = Batch()
             batch.inputs = numpy.reshape(
-                sample.inputs[firstTimeStep:lastTimeStep,:],
+                inputs,
                 (BATCH_SIZE, SEQUENCE_SIZE, self.featureSize))
-            outputs = sample.outputs[firstTimeStep:lastTimeStep,:]
             batch.outputs = numpy.reshape(
                 outputs,
-                (BATCH_SIZE, SEQUENCE_SIZE, CLASS_NUM))
-            batch.lossWeights = numpy.reshape(loss_weights(outputs),
-                (BATCH_SIZE, SEQUENCE_SIZE))
+                (BATCH_SIZE, CLASS_NUM))
             yield batch
 
 def generate_samples():
-    for sampleIndex in range(300):
-        delta = random.randrange(15)
-        first = random.randrange(SAMPLE_LENGTH - delta - 4)
-        second = first + delta
+    for sampleIndex in range(SAMPLE_NUM):
+        maxDelta = SAMPLE_LENGTH
+        delta = random.randrange(maxDelta)
+        second = SAMPLE_LENGTH - 1
+        first = second - delta
         inputs = numpy.ones((SAMPLE_LENGTH, 1)) * -1.0
         inputs[first, 0] = 1.0
         inputs[second, 0] = 1.0
-        noise = numpy.random.uniform(
+        inputNoise = numpy.random.uniform(
             -INPUT_NOISE, INPUT_NOISE, (SAMPLE_LENGTH, 1))
-        inputs += noise
-        outputs = numpy.zeros((SAMPLE_LENGTH, CLASS_NUM))
-        outputs[:, 0] = 1.0
-        if delta > 0 and delta < CLASS_NUM:
-            pulseBegin = second + 1
-            pulseEnd = second + 5
-            outputs[pulseBegin:pulseEnd, 0] = 0.0
-            outputs[pulseBegin:pulseEnd, delta] = 1.0
-        class Sample: pass
-        sample = Sample()
-        sample.inputs = inputs
-        sample.outputs = outputs
+        inputs += inputNoise
+        deltaPerCategory = maxDelta / 15.0
+        category = int(delta / deltaPerCategory)
+        outputs = numpy.zeros(CLASS_NUM)
+        if category > 0 and category < CLASS_NUM:
+            outputs[category] = 1.0
+        else:
+            outputs[0] = 1.0
+        sample = Sample(inputs, outputs)
+        print(category, inputs.transpose()[0], outputs)
         yield sample
 
 def loss_weights(outputs):
     weights = numpy.full(outputs.shape[0], 1.0)
     activated = outputs[:, 0] == 0.0
-    weights[activated] = 20.0
+    weights[activated] = 10.0
     return weights
 
 if __name__ == "__main__":

@@ -1,0 +1,497 @@
+[
+    {
+        "end": 186368, 
+        "begin": 132224, 
+        "word": "no"
+    }, 
+    {
+        "end": 437248, 
+        "begin": 374400, 
+        "word": "ok"
+    }, 
+    {
+        "end": 702464, 
+        "begin": 647680, 
+        "word": "no"
+    }, 
+    {
+        "end": 954368, 
+        "begin": 880640, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 1294336, 
+        "begin": 1225600, 
+        "word": "yes"
+    }, 
+    {
+        "end": 1504256, 
+        "begin": 1441024, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 1709056, 
+        "begin": 1636352, 
+        "word": "ok"
+    }, 
+    {
+        "end": 1893376, 
+        "begin": 1818368, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 2140160, 
+        "begin": 2061056, 
+        "word": "no"
+    }, 
+    {
+        "end": 2463744, 
+        "begin": 2391936, 
+        "word": "computer"
+    }, 
+    {
+        "end": 2785280, 
+        "begin": 2716544, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 3111936, 
+        "begin": 3044992, 
+        "word": "no"
+    }, 
+    {
+        "end": 3409920, 
+        "begin": 3340800, 
+        "word": "ok"
+    }, 
+    {
+        "end": 3768320, 
+        "begin": 3690496, 
+        "word": "computer"
+    }, 
+    {
+        "end": 3975168, 
+        "begin": 3880576, 
+        "word": "ok"
+    }, 
+    {
+        "end": 4260864, 
+        "begin": 4174848, 
+        "word": "computer"
+    }, 
+    {
+        "end": 4596736, 
+        "begin": 4526208, 
+        "word": "no"
+    }, 
+    {
+        "end": 4910080, 
+        "begin": 4827008, 
+        "word": "no"
+    }, 
+    {
+        "end": 5185536, 
+        "begin": 5115392, 
+        "word": "yes"
+    }, 
+    {
+        "end": 5417984, 
+        "begin": 5362432, 
+        "word": "yes"
+    }, 
+    {
+        "end": 5797888, 
+        "begin": 5714560, 
+        "word": "computer"
+    }, 
+    {
+        "end": 6071296, 
+        "begin": 6001792, 
+        "word": "no"
+    }, 
+    {
+        "end": 6385664, 
+        "begin": 6308480, 
+        "word": "no"
+    }, 
+    {
+        "end": 6685696, 
+        "begin": 6618496, 
+        "word": "ok"
+    }, 
+    {
+        "end": 6964224, 
+        "begin": 6892544, 
+        "word": "computer"
+    }, 
+    {
+        "end": 7286784, 
+        "begin": 7208832, 
+        "word": "yes"
+    }, 
+    {
+        "end": 7587840, 
+        "begin": 7518464, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 7816192, 
+        "begin": 7716992, 
+        "word": "computer"
+    }, 
+    {
+        "end": 7995392, 
+        "begin": 7923456, 
+        "word": "yes"
+    }, 
+    {
+        "end": 8253440, 
+        "begin": 8181376, 
+        "word": "yes"
+    }, 
+    {
+        "end": 8594432, 
+        "begin": 8523136, 
+        "word": "ok"
+    }, 
+    {
+        "end": 8819712, 
+        "begin": 8748160, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 9057280, 
+        "begin": 8973952, 
+        "word": "yes"
+    }, 
+    {
+        "end": 9322496, 
+        "begin": 9244672, 
+        "word": "ok"
+    }, 
+    {
+        "end": 9519104, 
+        "begin": 9425920, 
+        "word": "computer"
+    }, 
+    {
+        "end": 9722880, 
+        "begin": 9643648, 
+        "word": "ok"
+    }, 
+    {
+        "end": 10016768, 
+        "begin": 9936896, 
+        "word": "no"
+    }, 
+    {
+        "end": 10330112, 
+        "begin": 10257024, 
+        "word": "no"
+    }, 
+    {
+        "end": 10543104, 
+        "begin": 10468992, 
+        "word": "computer"
+    }, 
+    {
+        "end": 10861568, 
+        "begin": 10786176, 
+        "word": "computer"
+    }, 
+    {
+        "end": 11175936, 
+        "begin": 11090560, 
+        "word": "yes"
+    }, 
+    {
+        "end": 11487232, 
+        "begin": 11417216, 
+        "word": "computer"
+    }, 
+    {
+        "end": 11815936, 
+        "begin": 11754880, 
+        "word": "yes"
+    }, 
+    {
+        "end": 12150784, 
+        "begin": 12084864, 
+        "word": "no"
+    }, 
+    {
+        "end": 12369920, 
+        "begin": 12304128, 
+        "word": "no"
+    }, 
+    {
+        "end": 12605440, 
+        "begin": 12531584, 
+        "word": "yes"
+    }, 
+    {
+        "end": 12847104, 
+        "begin": 12762880, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 13083648, 
+        "begin": 13007744, 
+        "word": "ok"
+    }, 
+    {
+        "end": 13330432, 
+        "begin": 13230848, 
+        "word": "yes"
+    }, 
+    {
+        "end": 13614080, 
+        "begin": 13527808, 
+        "word": "ok"
+    }, 
+    {
+        "end": 13843456, 
+        "begin": 13744768, 
+        "word": "ok"
+    }, 
+    {
+        "end": 14055424, 
+        "begin": 13963904, 
+        "word": "ok"
+    }, 
+    {
+        "end": 14267392, 
+        "begin": 14195712, 
+        "word": "computer"
+    }, 
+    {
+        "end": 14557184, 
+        "begin": 14487808, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 14819328, 
+        "begin": 14748032, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 15043584, 
+        "begin": 14954752, 
+        "word": "yes"
+    }, 
+    {
+        "end": 15325184, 
+        "begin": 15228416, 
+        "word": "computer"
+    }, 
+    {
+        "end": 15656960, 
+        "begin": 15581056, 
+        "word": "ok"
+    }, 
+    {
+        "end": 15883264, 
+        "begin": 15808128, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 16227328, 
+        "begin": 16152960, 
+        "word": "computer"
+    }, 
+    {
+        "end": 16708608, 
+        "begin": 16637696, 
+        "word": "yes"
+    }, 
+    {
+        "end": 17072128, 
+        "begin": 16988032, 
+        "word": "ok"
+    }, 
+    {
+        "end": 17364992, 
+        "begin": 17283072, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 17614848, 
+        "begin": 17533568, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 17955840, 
+        "begin": 17865600, 
+        "word": "no"
+    }, 
+    {
+        "end": 18163712, 
+        "begin": 18075648, 
+        "word": "yes"
+    }, 
+    {
+        "end": 18467840, 
+        "begin": 18381696, 
+        "word": "yes"
+    }, 
+    {
+        "end": 18809856, 
+        "begin": 18724096, 
+        "word": "computer"
+    }, 
+    {
+        "end": 19121152, 
+        "begin": 19038080, 
+        "word": "computer"
+    }, 
+    {
+        "end": 19391488, 
+        "begin": 19267456, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 19650560, 
+        "begin": 19565312, 
+        "word": "ok"
+    }, 
+    {
+        "end": 19947520, 
+        "begin": 19873280, 
+        "word": "computer"
+    }, 
+    {
+        "end": 20273152, 
+        "begin": 20194560, 
+        "word": "no"
+    }, 
+    {
+        "end": 20595712, 
+        "begin": 20504832, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 20876288, 
+        "begin": 20772864, 
+        "word": "yes"
+    }, 
+    {
+        "end": 21059584, 
+        "begin": 20954112, 
+        "word": "ok"
+    }, 
+    {
+        "end": 21284864, 
+        "begin": 21208704, 
+        "word": "no"
+    }, 
+    {
+        "end": 21643264, 
+        "begin": 21550080, 
+        "word": "yes"
+    }, 
+    {
+        "end": 21932032, 
+        "begin": 21849600, 
+        "word": "no"
+    }, 
+    {
+        "end": 22202368, 
+        "begin": 22123904, 
+        "word": "ok"
+    }, 
+    {
+        "end": 22506496, 
+        "begin": 22417152, 
+        "word": "yes"
+    }, 
+    {
+        "end": 22790144, 
+        "begin": 22719616, 
+        "word": "no"
+    }, 
+    {
+        "end": 23085056, 
+        "begin": 22992896, 
+        "word": "yes"
+    }, 
+    {
+        "end": 23323648, 
+        "begin": 23251072, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 23519232, 
+        "begin": 23443328, 
+        "word": "no"
+    }, 
+    {
+        "end": 23711744, 
+        "begin": 23638656, 
+        "word": "computer"
+    }, 
+    {
+        "end": 23892992, 
+        "begin": 23826304, 
+        "word": "computer"
+    }, 
+    {
+        "end": 24209408, 
+        "begin": 24125440, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 24520704, 
+        "begin": 24435968, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 24823808, 
+        "begin": 24730496, 
+        "word": "ok"
+    }, 
+    {
+        "end": 25148416, 
+        "begin": 25068672, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 25478144, 
+        "begin": 25405056, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 25748480, 
+        "begin": 25647488, 
+        "word": "ok"
+    }, 
+    {
+        "end": 25988096, 
+        "begin": 25897088, 
+        "word": "cancel"
+    }, 
+    {
+        "end": 26209280, 
+        "begin": 26129664, 
+        "word": "computer"
+    }, 
+    {
+        "end": 26443776, 
+        "begin": 26361856, 
+        "word": "no"
+    }, 
+    {
+        "end": 26651648, 
+        "begin": 26575488, 
+        "word": "ok"
+    }, 
+    {
+        "end": 26972160, 
+        "begin": 26880128, 
+        "word": "yes"
+    }, 
+    {
+        "end": 27199488, 
+        "begin": 27104384, 
+        "word": "no"
+    }
+]

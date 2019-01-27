@@ -1,11 +1,13 @@
 import argparse
 import json
+import matplotlib.pyplot as plt
 import numpy
 import os
 from record import VOCABULARY
+from sklearn.preprocessing import MinMaxScaler
 
 FRAME_RATE = 44100
-SAMPLE_LENGTH = 5.0
+SAMPLE_LENGTH = 3.0
 ACTIVATION_LENGTH = 0.5
 
 class TrainingData:
@@ -33,28 +35,25 @@ class TrainingData:
             int(ACTIVATION_LENGTH * FRAME_RATE / self.chunk_size)
         self.inputs = list()
         self.outputs = list()
+        scaler = MinMaxScaler()
+        scaler = scaler.fit(self.features)
+        print(numpy.amin(self.features, axis=0))
+        print(numpy.amax(self.features, axis=0))
         for label in self.labels:
-            utteranceBegin = label["begin"] / self.chunk_size
-            utteranceEnd = label["end"] / self.chunk_size
+            utteranceBegin = int(label["begin"] / self.chunk_size)
+            utteranceEnd = int(label["end"] / self.chunk_size)
             utteranceLength = utteranceEnd - utteranceBegin
-            pauseLength = sampleLength - utteranceLength - activationLength
-            prePause = int(pauseLength / 2)
-            postPause = pauseLength - prePause
-            sampleBegin = utteranceBegin - prePause
-            sampleEnd = sampleBegin + sampleLength
+            sampleBegin = utteranceEnd - sampleLength
+            sampleEnd = utteranceEnd
             inputs = self.features[sampleBegin:sampleEnd,:]
+            print(inputs)
+            inputs = scaler.transform(inputs)
+            print(inputs)
+            plt.title(label["word"])
+            plt.imshow(inputs.transpose(), cmap="jet")
+            plt.show()
             self.inputs.append(inputs)
-            outputs = numpy.vstack((
-                numpy.tile(
-                    single_output_from_label(None),
-                    [prePause + utteranceLength, 1]),
-                numpy.tile(
-                    single_output_from_label(label["word"]),
-                    [activationLength, 1]),
-                numpy.tile(
-                    single_output_from_label(None),
-                    [postPause, 1])
-            ))
+            outputs = single_output_from_label(label["word"])
             self.outputs.append(outputs)
         self.inputs = numpy.array(self.inputs)
         self.outputs = numpy.array(self.outputs)

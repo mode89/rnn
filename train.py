@@ -1,11 +1,17 @@
 import argparse
 import numpy
 import os
+import random
+from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
+from tensorflow.nn.rnn_cell import LSTMCell, GRUCell
+from tqdm import tqdm
 
-NUM_UNITS = 128
-SEQUENCE_SIZE = 20
-BATCH_SIZE = 1
+numpy.set_printoptions(suppress=True, precision=3)
+
+NUM_UNITS = 32
+SAMPLE_LENGTH = 300
+BATCH_SIZE = 10
 
 class Model:
 
@@ -26,7 +32,7 @@ class Model:
         outputs = data["outputs"]
         sampleNum = inputs.shape[0]
         self.featureSize = inputs.shape[2]
-        self.classNum = outputs.shape[2]
+        self.classNum = outputs.shape[1]
         self.samples = list()
         for i in range(sampleNum):
             class Sample: pass
@@ -42,38 +48,37 @@ class Model:
         tf.set_random_seed(0)
 
         self.inputs = tf.placeholder(tf.float32,
-            (None, SEQUENCE_SIZE, self.featureSize), name="inputs")
-        self.outputs = tf.placeholder(tf.float32,
-            (None, SEQUENCE_SIZE, self.classNum), name="outputs")
+            (None, SAMPLE_LENGTH, self.featureSize), name="inputs")
+        self.logitsReference = tf.placeholder(tf.float32,
+            (None, self.classNum), name="logitsReference")
 
-        lstmCell = tf.nn.rnn_cell.LSTMCell(num_units=NUM_UNITS)
-        self.zeroState = lstmCell.zero_state(BATCH_SIZE, tf.float32)
-        self.initialState = tf.nn.rnn_cell.LSTMStateTuple(
-            c=tf.placeholder(tf.float32, (None, lstmCell.state_size.c)),
-            h=tf.placeholder(tf.float32, (None, lstmCell.state_size.h)))
-        lstmOutputs, self.finalState = tf.nn.dynamic_rnn(
-            cell=lstmCell,
-            inputs=self.inputs,
-            sequence_length=[SEQUENCE_SIZE],
-            initial_state=self.initialState)
-        logits = list()
+        rnn = GRUCell(NUM_UNITS)
+
         denseLayer = tf.layers.Dense(self.classNum, tf.sigmoid)
-        for i in range(SEQUENCE_SIZE):
-            tempLogits = denseLayer(lstmOutputs[:, i, :])
-            logits.append(tempLogits)
-        self.logits = tf.reshape(logits, tf.shape(self.outputs))
-        self.lossOp = tf.losses.softmax_cross_entropy(
-            self.outputs, self.logits)
-        optimizer = tf.train.AdamOptimizer()
-        # optimizer = tf.train.RMSPropOptimizer(0.001)
-        self.trainOp = optimizer.minimize(self.lossOp)
-        self.logitsSoftmax = tf.nn.softmax(self.logits)
-        self.mseOp = tf.losses.mean_squared_error(
-            self.outputs, self.logits)
-        self.diffOp = tf.losses.absolute_difference(
-            self.outputs, self.logits)
+        state = rnn.zero_state(BATCH_SIZE, tf.float32)
+        for i in range(SAMPLE_LENGTH):
+            inputs = self.inputs[:, i, :]
+            outputs, state = rnn(inputs, state)
+        self.logits = denseLayer(outputs)
+        losses = list()
+        for batchIndex in range(BATCH_SIZE):
+            loss = tf.losses.softmax_cross_entropy(
+                self.logitsReference[batchIndex,:],
+                self.logits[batchIndex,:])
+            losses.append(loss)
+        self.loss = tf.reduce_mean(losses)
 
-    def train(self):
+        self.argmax = tf.argmax(self.logits, 1)
+        self.oneHot = tf.one_hot(self.argmax, self.classNum)
+
+        optimizer = tf.train.AdamOptimizer()
+        self.trainOp = optimizer.minimize(self.loss)
+
+    def train(self, samples):
+        trainSamplesNum = int(len(samples) * 0.8)
+        trainSamples = samples[:trainSamplesNum]
+        testSamples = samples[trainSamplesNum:]
+        self.normalize_inputs()
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         with tf.Session(config=config) as self.session:
@@ -82,57 +87,95 @@ class Model:
             try:
                 while True:
                     print("Epoch {} ...".format(epoch))
-                    self.epoch()
+                    self.epoch(trainSamples)
+                    self.validate(testSamples)
                     epoch += 1
             except KeyboardInterrupt:
                 pass
 
-    def epoch(self):
+    def normalize_inputs(self):
+        print("Normalizing inputs ...")
+        inputs = list()
         for sample in self.samples:
-            mseMax = None
-            lossMax = None
-            diffMax = None
-            state = self.session.run(self.zeroState)
-            lossSum = 0
-            for batch in self.batches(sample):
-                _, state, loss, mse, logitsValues = self.session.run(
-                    [
-                        self.trainOp,
-                        self.finalState,
-                        self.lossOp,
-                        self.mseOp,
-                        self.logits
-                    ],
-                    {
-                        self.inputs: batch.inputs,
-                        self.outputs: batch.outputs,
-                        self.initialState.c: state.c,
-                        self.initialState.h: state.h
-                    })
-                lossSum += loss
-                lossMax = max(loss, lossMax)
-                mseMax = max(mse, mseMax)
-                diff = numpy.max(
-                    numpy.abs(logitsValues - batch.outputs))
-                diffMax = max(diff, diffMax)
-            print(lossSum / self.batchNum, lossMax, mseMax, diffMax)
+            inputs.append(sample.inputs)
+        inputs = numpy.vstack(inputs)
+        self.normalizer = StandardScaler().fit(inputs)
 
-    def batches(self, sample):
-        self.batchNum = sample.inputs.shape[0] / SEQUENCE_SIZE
-        for i in range(self.batchNum):
-            firstTimeStep = i * SEQUENCE_SIZE
-            lastTimeStep = firstTimeStep + SEQUENCE_SIZE
+    def epoch(self, samples):
+        truthCounter = 0
+        lossSum = 0.0
+        random.shuffle(samples)
+        for batch in self.batches(samples, progress=True):
+            results = self.session.run(
+                {
+                    "trainOp": self.trainOp,
+                    "oneHot": self.oneHot,
+                    "loss": self.loss,
+                },
+                {
+                    self.inputs: batch.inputs,
+                    self.logitsReference: batch.outputs,
+                })
+            for i in range(BATCH_SIZE):
+                diff = numpy.sum(numpy.abs(
+                    results["oneHot"][i] - batch.outputs[i]))
+                if diff < 0.1:
+                    truthCounter += 1
+            lossSum += results["loss"]
+        print(
+            float(truthCounter) / len(samples),
+            lossSum / len(samples) * BATCH_SIZE,
+        )
+
+    def validate(self, samples):
+        truthCounter = 0
+        lossSum = 0.0
+        for batch in self.batches(samples, progress=False):
+            results = self.session.run(
+                {
+                    "oneHot": self.oneHot,
+                    "loss": self.loss,
+                },
+                {
+                    self.inputs: batch.inputs,
+                    self.logitsReference: batch.outputs,
+                })
+            for i in range(BATCH_SIZE):
+                diff = numpy.sum(numpy.abs(
+                    results["oneHot"][i] - batch.outputs[i]))
+                if diff < 0.1:
+                    truthCounter += 1
+            lossSum += results["loss"]
+        print(
+            float(truthCounter) / len(samples),
+            lossSum / len(samples) * BATCH_SIZE,
+        )
+
+    def batches(self, samples, progress):
+        batchNum = len(samples) / BATCH_SIZE
+        batchRange = range(batchNum)
+        batchRange = tqdm(batchRange, ascii=True) \
+            if progress else batchRange
+        for batchIndex in batchRange:
+            firstSample = batchIndex * BATCH_SIZE
+            lastSample = firstSample + BATCH_SIZE
+            inputs = list()
+            outputs = list()
+            for sample in samples[firstSample:lastSample]:
+                inputsNormalized = self.normalizer.transform(sample.inputs)
+                inputs.append(inputsNormalized)
+                outputs.append(sample.outputs)
             class Batch: pass
             batch = Batch()
             batch.inputs = numpy.reshape(
-                sample.inputs[firstTimeStep:lastTimeStep,:],
-                (BATCH_SIZE, SEQUENCE_SIZE, self.featureSize))
+                inputs,
+                (BATCH_SIZE, SAMPLE_LENGTH, self.featureSize))
             batch.outputs = numpy.reshape(
-                sample.outputs[firstTimeStep:lastTimeStep,:],
-                (BATCH_SIZE, SEQUENCE_SIZE, self.classNum))
+                outputs,
+                (BATCH_SIZE, self.classNum))
             yield batch
 
 if __name__ == "__main__":
     model = Model()
     model.build()
-    model.train()
+    model.train(model.samples)
